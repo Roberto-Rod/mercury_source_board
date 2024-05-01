@@ -21,8 +21,8 @@ use ieee.numeric_std.all;
 package version_pkg is
 
 constant VERS_MAJ : natural := 2;  --! FPGA Version, Major
-constant VERS_MIN : natural := 0;  --! FPGA Version, Minor
-constant VERS_BLD : natural := 4;  --! FPGA Version, Build
+constant VERS_MIN : natural := 1;  --! FPGA Version, Minor
+constant VERS_BLD : natural := 3;  --! FPGA Version, Build
 
 constant FPGA_VERSION_MAJOR : std_logic_vector(7 downto 0)  := std_logic_vector(to_unsigned(VERS_MAJ, 8)); 
 constant FPGA_VERSION_MINOR : std_logic_vector(7 downto 0)  := std_logic_vector(to_unsigned(VERS_MIN, 8)); 

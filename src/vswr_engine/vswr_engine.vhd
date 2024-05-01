@@ -62,10 +62,11 @@ architecture rtl of vswr_engine is
     -- dock RS485 bus is in use. The dock comms module will reserve the bus whilst power settles. This means
     -- that the VSWR test will be consistent from test to test, rather than sometimes pushing the settling period out
     -- if the RS485 bus was in use by the register interface just before a VSWR request was made.
-    constant C_PWR_SETTLE_DIFF          : unsigned(15 downto 0) := to_unsigned(56e3, 16); -- 700 us @ 80 MHz
-    constant C_PWR_SETTLE_REV           : unsigned(15 downto 0) := to_unsigned(8e3, 16);  -- 100 us @ 80 MHz
+    constant C_PWR_SETTLE_DIFF           : unsigned(15 downto 0) := to_unsigned(56e3, 16); -- 700 us @ 80 MHz
+    constant C_PWR_SETTLE_REV            : unsigned(15 downto 0) := to_unsigned(8e3, 16);  -- 100 us @ 80 MHz
 
-    constant C_VSWR_FAIL_ACTIVE_DEFAULT : unsigned(9 downto 0)  := to_unsigned(50, 10);   -- 50 ms
+    constant C_VSWR_FAIL_ACTIVE_DEFAULT  : unsigned(9 downto 0)  := to_unsigned(50, 10);   -- 50 ms
+    constant C_CVSWR_CHECK_DELAY_DEFAULT : unsigned(26 downto 0) := to_unsigned(16e6, 27); -- 200 ms @ 80 MHz
 
     -- Finite State Machine
     type fsm_vswr_t is (IDLE, REQUEST_TEST,  WAIT_LINE_START,
@@ -117,6 +118,7 @@ architecture rtl of vswr_engine is
     signal vswr_status_reg        : std_logic_vector(16 downto 0) := (others => '0');
     signal jam_to_cvswr_valid     : unsigned(11 downto 0); --! Time from start of jamming to CVSWR valid, milliseconds
     signal blank_to_cvswr_invalid : unsigned(11 downto 0); --! Time from start of blanking to CVSWR valid, milliseconds
+    signal cvswr_check_delay_reg  : unsigned(26 downto 0);
     
     alias  cont_vswr              : std_logic                     is vswr_control(11);
     alias  pwr_mon_sel            : std_logic_vector(1 downto 0)  is vswr_control(10 downto 9);
@@ -139,12 +141,13 @@ architecture rtl of vswr_engine is
     signal ms_count_rf_active     : unsigned(9 downto 0)  := (others => '0');
 
     -- Timeout count
-    signal timeout_count          : unsigned(15 downto 0); --! 16-bit timeout count gives 0.82 ms at 80 MHz
+    signal timeout_count          : unsigned(19 downto 0); --! 20-bit timeout count gives 13.1 ms at 80 MHz
     
     -- CVSWR valid/invalid monitoring
     signal cvswr_blank_timer      : unsigned(11 downto 0);
     signal cvswr_active_timer     : unsigned(11 downto 0);
     signal cvswr_ms_timer         : unsigned(16 downto 0);
+    signal cvswr_check_delay_cnt  : unsigned(26 downto 0);    
     
     -- Blanking control
     signal blank_rev_n            : std_logic;
@@ -184,12 +187,13 @@ begin
     begin
         if rising_edge(reg_clk) then
             if reg_srst = '1' then
-                reg_miso.ack               <= '0';
-                reg_thresh_rev             <= (others => (others => '0'));
-                reg_thresh_diff            <= (others => (others => '0'));
-                vswr_control               <= (others => '0');
-                vswr_window_offs           <= (others => '0');
-                vswr_fail_active_time      <= std_logic_vector(C_VSWR_FAIL_ACTIVE_DEFAULT);
+                reg_miso.ack          <= '0';
+                reg_thresh_rev        <= (others => (others => '0'));
+                reg_thresh_diff       <= (others => (others => '0'));
+                vswr_control          <= (others => '0');
+                vswr_window_offs      <= (others => '0');
+                vswr_fail_active_time <= std_logic_vector(C_VSWR_FAIL_ACTIVE_DEFAULT);
+                cvswr_check_delay_reg <= C_CVSWR_CHECK_DELAY_DEFAULT;
             else
                 -- Defaults
                 reg_miso.data <= (others => '0');
@@ -288,6 +292,15 @@ begin
                             blank_to_cvswr_invalid <= unsigned(reg_mosi.data(blank_to_cvswr_invalid'range));
                         end if;
                         reg_miso.ack <= '1';
+                    elsif unsigned(reg_mosi.addr) = unsigned(REG_ADDR_CVSWR_CHECK_DELAY) then
+                        if reg_mosi.rd_wr_n = '1' then
+                            -- Read CVSWR Check Delay
+                            reg_miso.data(cvswr_check_delay_reg'range) <= std_logic_vector(cvswr_check_delay_reg);
+                        else
+                            -- Write CVSWR Check Delay
+                            cvswr_check_delay_reg <= unsigned(reg_mosi.data(cvswr_check_delay_reg'range));
+                        end if;
+                        reg_miso.ack <= '1';
                     end if;
                 end if;
             end if;
@@ -381,6 +394,7 @@ begin
                 vswr_fail_flag_valid  <= '0';
                 test_tone_nr          <= (others => '0');
                 latest_result         <= (others => '0');
+                cvswr_check_delay_cnt <= (others => '0');
                 line_addr             <= unsigned(vswr_start_addr);
                 reg_result_active_fwd <= (others => (others => '0'));
                 reg_result_active_rev <= (others => (others => '0'));
@@ -398,7 +412,7 @@ begin
                         vswr_mosi.vswr_period <= '0';
 
                         -- Reset the timeout count
-                        timeout_count <= (others => '1');
+                        timeout_count <= to_unsigned(65535, timeout_count'length);
 
                         -- Reset the failure flags
                         vswr_diff_fail <= '0';
@@ -415,10 +429,18 @@ begin
                             test_tone_nr  <= (others => '0');
                             latest_result <= (others => '0');
                             line_addr     <= unsigned(vswr_start_addr);
-                            fsm_vswr      <= CONT_REQ_MEAS;
-                        elsif unsigned(nr_test_tones) /= 0 and vswr_test_start = '1' then
-                            fsm_vswr      <= REQUEST_TEST;
-                            vswr_line_req <= '1';
+                            if cvswr_check_delay_cnt = cvswr_check_delay_reg then
+                                fsm_vswr <= CONT_REQ_MEAS;
+                                cvswr_check_delay_cnt <= (others => '0');
+                            else
+                                cvswr_check_delay_cnt <= cvswr_check_delay_cnt + 1;
+                            end if;
+                        else
+                            cvswr_check_delay_cnt <= (others => '0');
+                            if unsigned(nr_test_tones) /= 0 and vswr_test_start = '1' then
+                                fsm_vswr      <= REQUEST_TEST;
+                                vswr_line_req <= '1';
+                            end if;
                         end if;
 
                     when REQUEST_TEST =>
@@ -447,7 +469,7 @@ begin
                         vswr_mosi.valid <= '1';
                         fsm_vswr        <= READ_RESULT_DIFF;
                         -- Reset the timeout count
-                        timeout_count   <= (others => '1');
+                        timeout_count <= to_unsigned(65535, timeout_count'length);
 
                     when READ_RESULT_DIFF =>
                         if vswr_result_valid = '1' then
@@ -482,7 +504,7 @@ begin
                         vswr_mosi.valid <= '1';
                         fsm_vswr        <= READ_RESULT_REV;
                         -- Reset the timeout count
-                        timeout_count   <= (others => '1');
+                        timeout_count <= to_unsigned(65535, timeout_count'length);
 
                     when READ_RESULT_REV =>
                         if vswr_result_valid = '1' then

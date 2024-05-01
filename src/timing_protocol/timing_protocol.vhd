@@ -56,8 +56,8 @@ end timing_protocol;
 architecture rtl of timing_protocol is
     -- Constants
     constant C_TRANSITION_LENGTH   : integer := 24;
-    constant C_MUTE_TO_RX          : unsigned := to_unsigned(  80, C_TRANSITION_LENGTH+2); --! 1 µs at 80 MHz
-    constant C_TX_TO_UNMUTE        : unsigned := to_unsigned( 240, C_TRANSITION_LENGTH+2); --! 3 µs at 80 MHz
+    constant C_MUTE_TO_RX          : unsigned := to_unsigned(  80, C_TRANSITION_LENGTH+2); --! 1 µs at 80 MHz (t_mute)
+    constant C_TX_TO_UNMUTE        : unsigned := to_unsigned( 320, C_TRANSITION_LENGTH+2); --! 4 µs at 80 MHz (t_guard + t_sw_tx)
     constant C_MIN_RX_WINDOW       : unsigned := to_unsigned(6400, C_TRANSITION_LENGTH+2); --! 80 µs at 80 MHz
 
     -- Timing Protocol control register

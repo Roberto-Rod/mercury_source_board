@@ -141,7 +141,7 @@ begin
         -- Blanking Control
         int_blank_n         => int_blank_n,
 
-        -- Capture/Hold request
+        -- Capture Request
         cap_req             => cap_req,
 
         -- Outputs

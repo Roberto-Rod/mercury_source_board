@@ -60,8 +60,8 @@ constant REG_ADDR_EXT_GPIO_DIR          : std_logic_vector(23 downto 0) := x"000
 constant REG_ADDR_EXT_GPO_FLASH_RATE    : std_logic_vector(23 downto 0) := x"000004";   --! External GPO flash rate register
 constant REG_ADDR_PPS_CLOCK_COUNT       : std_logic_vector(23 downto 0) := x"000005";   --! 10MHz clock count between 1PPS pulses
 --
-constant REG_ADDR_BUILD_ID_LSBS         : std_logic_vector(23 downto 0) := x"000009";   --! Interrupt status register
-constant REG_ADDR_BUILD_ID_MSBS         : std_logic_vector(23 downto 0) := x"00000a";   --! Interrupt status register
+constant REG_ADDR_BUILD_ID_LSBS         : std_logic_vector(23 downto 0) := x"000009";   --! Git commit ID 32 LSBs
+constant REG_ADDR_BUILD_ID_MSBS         : std_logic_vector(23 downto 0) := x"00000a";   --! Git commit ID 8 MSBs
 constant REG_ADDR_DAC_CONTROL           : std_logic_vector(23 downto 0) := x"00000b";   --! DAC control register
 constant REG_ADDR_DAC_BASE              : std_logic_vector(23 downto 0) := x"00000c";   --! DAC base register (channel A)
 constant REG_ADDR_DAC_TOP               : std_logic_vector(23 downto 0) := x"00000f";   --! DAC base register (channel D)
@@ -105,6 +105,7 @@ constant REG_ADDR_INT_PA_BLNK_TO_INVLD  : std_logic_vector(23 downto 0) := x"000
 constant REG_ADDR_INT_PA_ACTV_TO_VALID  : std_logic_vector(23 downto 0) := x"000177";   --! Internal PA RF Power Monitor Active to RF Valid
 constant REG_ADDR_JAM_TO_CVSWR_VALID    : std_logic_vector(23 downto 0) := x"000178";   --! Jam Start to CVSWR Valid register
 constant REG_ADDR_BLANK_TO_CVSWR_INVALID: std_logic_vector(23 downto 0) := x"000179";   --! Blank to CVSWR Invalid register
+constant REG_ADDR_CVSWR_CHECK_DELAY     : std_logic_vector(23 downto 0) := x"00017a";   --! CVSWR Check Delay register
 
 -- Timing Protocol Registers
 constant REG_ADDR_TP_TRANSITION_BASE    : std_logic_vector(23 downto 0) := x"000180";   --! Timing Protocol Transition Time Base Register

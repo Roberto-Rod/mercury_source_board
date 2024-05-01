@@ -438,7 +438,7 @@ begin
     );
 
     i_line_addr_1st_dly: entity work.unsigned_delay
-    generic map ( bits => 1, stages => 6 )
+    generic map ( bits => 1, stages => 7 )
     port map (
         clk  => dds_sync_clk,
         i(0) => line_addr_1st,

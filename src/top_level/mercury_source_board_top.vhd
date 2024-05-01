@@ -236,7 +236,7 @@ begin
     -----------------------------
     -- Tx/Rx Control Tri-State --
     -----------------------------
-    tx_rx_ctrl <= tx_rx_ctrl_o when (jam_en_n = '0') else 'Z';
+    tx_rx_ctrl <= tx_rx_ctrl_o when (jam_en_n = '0') else '1';
 
     i_cpu_spi_slave: entity work.cpu_spi_slave
     port map (

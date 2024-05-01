@@ -109,7 +109,7 @@ architecture rtl of dds_interface is
     signal dds_d_t                  : std_logic_vector(31 downto 16);               --! DDS data/address/serial pins - tri-state control
 
     -- DDS parallel read/write state machine
-    type fsm_dds_parallel_t is (IDLE, WR_1_1,  WR_1_2,  WR_1_3,  WR_2_1,  WR_2_2,  WR_2_3,
+    type fsm_dds_parallel_t is (IDLE, WR_1_1,  WR_1_2,  WR_1_3,  WR_2_1,  WR_2_2,  WR_2_3,  WR_2_4,
                                       RD_1_1,  RD_1_2,  RD_1_3,  RD_1_4,  RD_1_5,  RD_1_6,  RD_1_7,  RD_1_8,
                                       RD_1_9,  RD_1_10, RD_1_11, RD_1_12, RD_1_13, RD_1_14, RD_1_15, RD_1_16,
                                       RD_1_17, RD_1_18, RD_1_19, RD_1_20, RD_1_21, RD_1_22, RD_1_23,
@@ -479,7 +479,7 @@ begin
                             jam_dds_dout_valid <= '1';
                             dds_ftw_latest     <= dds_ftw_store(to_integer(restart_index));
                             fsm_jam_rd_next    <= JAM_RESTART_DFTW;
-                            wait_count         <= "110";
+                            wait_count         <= "111";
                         end if;
 
                     when JAM_RESTART_DFTW =>
@@ -491,7 +491,7 @@ begin
                             jam_dds_dout       <= dds_dftw_store(to_integer(restart_index));
                             jam_dds_dout_valid <= '1';
                             fsm_jam_rd_next    <= JAM_RESTART_ASF_POW;
-                            wait_count         <= "110";
+                            wait_count         <= "111";
                         end if;
 
                     when JAM_RESTART_ASF_POW =>
@@ -551,7 +551,7 @@ begin
                             jam_dds_dout_valid <= '1';
                             jam_rd_en          <= '1';
                             fsm_jam_rd_next    <= JAM_RD_DFTW;
-                            wait_count         <= "110";
+                            wait_count         <= "111";
                         end if;
 
                     when JAM_RD_DFTW =>
@@ -566,7 +566,7 @@ begin
                             jam_dds_dout_valid <= '1';
                             jam_rd_en          <= '1';
                             fsm_jam_rd_next    <= JAM_RD_ASF_POW;
-                            wait_count         <= "110";
+                            wait_count         <= "111";
                         end if;
 
                     when JAM_RD_ASF_POW =>
@@ -665,6 +665,11 @@ begin
                     if jam_dds_dout_valid = '1' then
                         dds_prl_addr     <= jam_dds_addr;
                         dds_prl_data     <= jam_dds_dout;
+                        
+                        -- Write least significant half-word
+                        dds_addr_out <= jam_dds_addr;
+                        dds_data_out <= jam_dds_dout(15 downto 0);                        
+                        
                         fsm_dds_parallel <= WR_1_1;         -- Jamming engine accesses are always write
                     elsif reg_dds_dout_valid_s = '1' then
                         -- The register accesses are based on the AD9914 6-bit "serial addresses"
@@ -674,6 +679,10 @@ begin
                         -- Generate this by right-shifting by two bits & setting the LSB = 1
                         dds_prl_addr     <= reg_dds_addr_s & "01";
                         dds_prl_data     <= reg_dds_dout_s;
+                        
+                        -- Write least significant half-word
+                        dds_addr_out <= reg_dds_addr_s & "01";
+                        dds_data_out <= reg_dds_dout_s(15 downto 0);                        
 
                         -- Move to read/write state as requested
                         if reg_dds_rd_wr_n_s = '1' then
@@ -687,17 +696,16 @@ begin
                 -- WRITE CYCLE --
                 -----------------
                 when WR_1_1 =>
-                    -- Write least significant half-word
-                    dds_data_out <= dds_prl_data(15 downto 0);
-                    dds_addr_out <= dds_prl_addr;
-
+                    -- Write least significant half-word - setup period
                     fsm_dds_parallel <= WR_1_2;
 
                 when WR_1_2 =>
+                -- Write least significant half-word - write period
                     dds_wr_n         <= '0';
                     fsm_dds_parallel <= WR_1_3;
 
                 when WR_1_3 =>
+                    -- Write least significant half-word - hold period
                     dds_wr_n         <= '1';
                     fsm_dds_parallel <= WR_2_1;
 
@@ -705,14 +713,19 @@ begin
                     -- Write most significant half-word
                     dds_data_out <= dds_prl_data(31 downto 16);
                     dds_addr_out <= std_logic_vector(unsigned(dds_prl_addr) + 2);
-
                     fsm_dds_parallel <= WR_2_2;
 
                 when WR_2_2 =>
-                    dds_wr_n         <= '0';
+                    -- Write most significant half-word - setup period
                     fsm_dds_parallel <= WR_2_3;
 
                 when WR_2_3 =>
+                    -- Write most significant half-word - write period
+                    dds_wr_n         <= '0';
+                    fsm_dds_parallel <= WR_2_4;
+                    
+                when WR_2_4 =>
+                    -- Write most significant half-word - hold period
                     dds_wr_n         <= '1';
                     fsm_dds_parallel <= IDLE;
 
