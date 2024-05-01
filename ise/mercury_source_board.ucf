@@ -1,0 +1,282 @@
+
+## 10MHz Clock Constraint
+NET "clk_10m" TNM_NET = clk_10m;
+TIMESPEC TS_clk_10m = PERIOD "clk_10m" 100 ns HIGH 50%;
+
+## DDS Sync Clock Constraint - 3500MHz / 24
+# headroom is provided as the clock runs at 3240 MHz / 24 in the hardware
+NET "dds_sync_clk" TNM_NET = dds_sync_clk;
+TIMESPEC TS_dds_sync_clk = PERIOD "dds_sync_clk" 6.857143 ns HIGH 50%;
+# IO_UPDATE setup time is 2 ns before sync clock rising edge
+# The clock is inverted so we target the second rising edge from
+# a timing analysis point-of-view so the setup time is (2*T) - 2ns
+NET "dds_io_update" OFFSET = OUT 11.5 ns AFTER "dds_sync_clk" RISING;
+# Note that the address/data timing is managed relative to WRn
+# going low as address/data and control (WRn) are synchronous to dds_sync_clk
+# with WRn staying high for an entire clock cyle.
+
+## SPI Clock Constraint - 20 MHz
+## https://www.xilinx.com/support/documentation/sw_manuals/xilinx14_4/cgd.pdf
+## https://www.xilinx.com/support/documentation/white_papers/wp237.pdf
+NET "spi_cpu_clk" TNM_NET = spi_cpu_clk;
+TIMESPEC TS_SPI_CPU_CLK = PERIOD "spi_cpu_clk" 50 ns HIGH 50%;
+
+## Constraints derived from LPC178X_7X Datasheet, Rev. 4.1, Table 24
+## tDS = 14.8 ns, tH = 2 ns
+## tv(Q) = 6.3 ns, th(Q) = -2.4 ns
+## allow 2.0 ns slack for routing delays/duty cycle error
+## data in valid before falling edge (at clock pins): (50/2)-6.3-2.0 = 16.7 ns
+## data in valid for clock period - tDS + tH - slack: 50-6.3-2.4-2.0 = 39.3 ns
+NET "spi_cpu_mosi" OFFSET = IN 16.7 ns VALID 39.3 ns BEFORE "spi_cpu_clk" FALLING;
+
+## Data setup time is 14.8 ns min. before falling edge. 
+## For 25 ns period this gives 10.2 ns from rising edge to output the data.
+## Allow 2.2 ns slack for routing delays/duty cycle error.
+NET "spi_cpu_miso" OFFSET = OUT 8.0 ns AFTER "spi_cpu_clk" RISING;
+
+# 62.5MHz GTP Reference clock constraint 
+NET "i_drm_interface/i_drm_aurora_wrapper/mgt_clk" TNM_NET = GT_REFCLK;
+TIMESPEC TS_GTPD0_LEFT_I = PERIOD "GT_REFCLK" 62.5 MHz HIGH 50%;
+
+# Aurora User Clock Constraint: Value is selected based on the line rate (3.125 Gbps) and lane width (4-Byte)
+NET "i_drm_interface/i_drm_aurora_wrapper/user_clk" TNM_NET = AUR_USER_CLK;
+TIMESPEC TS_AUR_USER_CLK_I = PERIOD "AUR_USER_CLK" 78.125 MHz HIGH 50%;
+
+# Aurora Sync Clock Constraint: Value is selected based on the line rate (3.125 Gbps) and lane width (4-Byte)
+NET "i_drm_interface/i_drm_aurora_wrapper/sync_clk" TNM_NET = AUR_SYNC_CLK;
+TIMESPEC TS_AUR_SYNC_CLK_I = PERIOD "AUR_SYNC_CLK" 312.5 MHz HIGH 50%;
+
+###### No cross clock domain analysis from reg clk to Aurora user clock. Domains are not related ########
+NET "reg_clk" TNM_NET = REG_CLK;
+TIMESPEC "TS_TIG_AUR" = FROM "REG_CLK" TO "AUR_USER_CLK" TIG; 
+
+############################### GT Location ###################################
+INST i_drm_interface/i_drm_aurora_wrapper/i_drm_aurora/gtp_wrapper_i/gtp_tile_inst/gtpa1_dual_i LOC=GTPA1_DUAL_X0Y0;
+
+## Dock Comms UART FIFO cross-clock synchronisation
+## ref. http://www.xilinx.com/support/answers/43210.htm
+## also http://forums.xilinx.com/t5/Timing-Analysis/Asynchronous-FIFO-Timing-Error-Messages/td-p/35178
+NET "i_pa_management/i_dock_comms/i_fifo_rx/*/wr_pntr_gc_*" TIG;
+NET "i_pa_management/i_dock_comms/i_fifo_rx/*/rd_pntr_gc_*" TIG;
+NET "i_pa_management/i_dock_comms/i_fifo_rx/*/gsync_stage*" TIG;
+NET "i_pa_management/i_dock_comms/i_fifo_tx/*/wr_pntr_gc_*" TIG;
+NET "i_pa_management/i_dock_comms/i_fifo_tx/*/rd_pntr_gc_*" TIG;
+NET "i_pa_management/i_dock_comms/i_fifo_tx/*/gsync_stage*" TIG;
+
+## Ignore timing on asynchronous inputs
+NET "synth_muxout"                  TIG;
+NET "synth_ld"                      TIG;
+
+## 10MHz Clock
+NET "clk_10m"                       LOC = "AA10";
+
+## TCXO Trim DAC
+NET "dac_scl"                       LOC = "F22";
+NET "dac_sda"                       LOC = "G22";
+NET "dac_ldac_n"                    LOC = "H22";
+#NET "dac_rdy"                       LOC = "J22";
+
+## 1PPS In/Out
+NET "ext_pps_in"                    LOC = "U9";
+NET "ext_pps_out"                   LOC = "T8";
+
+## DDS Control
+NET "dds_ext_pwr_dwn"               LOC = "P6";
+NET "dds_osk"                       LOC = "N7";
+NET "dds_io_update"                 LOC = "P2";
+NET "dds_dr_over"                   LOC = "K6";
+NET "dds_dr_hold"                   LOC = "P7";
+NET "dds_dr_ctl"                    LOC = "J7";
+#NET "dds_sync_out"                 LOC = "";
+#NET "dds_sync_in"                  LOC = "";
+NET "dds_sync_clk"                  LOC = "N4";
+NET "dds_ps[2]"                     LOC = "R3";
+NET "dds_ps[1]"                     LOC = "P3";
+NET "dds_ps[0]"                     LOC = "N3";
+NET "dds_f[3]"                      LOC = "K4";
+NET "dds_f[2]"                      LOC = "J4";
+NET "dds_f[1]"                      LOC = "H4";
+NET "dds_f[0]"                      LOC = "G4";
+NET "dds_reset"                     LOC = "R1";
+NET "dds_d[0]"                      LOC = "M3";
+NET "dds_d[1]"                      LOC = "M7";
+NET "dds_d[2]"                      LOC = "M8";
+NET "dds_d[3]"                      LOC = "K8";
+NET "dds_d[4]"                      LOC = "K7";
+NET "dds_d[5]"                      LOC = "H3";
+NET "dds_d[6]"                      LOC = "G3";
+NET "dds_d[7]"                      LOC = "H2";
+NET "dds_d[8]"                      LOC = "J3";
+NET "dds_d[9]"                      LOC = "K3";
+NET "dds_d[10]"                     LOC = "L3";
+NET "dds_d[11]"                     LOC = "H1";
+NET "dds_d[12]"                     LOC = "J1";
+NET "dds_d[13]"                     LOC = "K2";
+NET "dds_d[14]"                     LOC = "K1";
+NET "dds_d[15]"                     LOC = "L1";
+NET "dds_d[16]"                     LOC = "M1";
+NET "dds_d[17]"                     LOC = "M2";
+NET "dds_d[18]"                     LOC = "N1";
+NET "dds_d[19]"                     LOC = "P1";
+NET "dds_d[20]"                     LOC = "L4";
+NET "dds_d[21]"                     LOC = "L6";
+NET "dds_d[22]"                     LOC = "M5";
+NET "dds_d[23]"                     LOC = "M4";
+NET "dds_d[24]"                     LOC = "P5";
+NET "dds_d[25]"                     LOC = "P4";
+NET "dds_d[26]"                     LOC = "R4";
+NET "dds_d[27]"                     LOC = "H5";
+NET "dds_d[28]"                     LOC = "J6";
+NET "dds_d[29]"                     LOC = "K5";
+NET "dds_d[30]"                     LOC = "M6";
+NET "dds_d[31]"                     LOC = "N6";
+
+## Synth Control
+NET "synth_sclk"                    LOC = "V2";
+NET "synth_data"                    LOC = "U1";  
+NET "synth_le"                      LOC = "T2";
+NET "synth_ce"                      LOC = "T1";
+NET "synth_ld"                      LOC = "V1";
+NET "synth_pdrf_n"                  LOC = "Y1";
+NET "synth_muxout"                  LOC = "W3";
+NET "synth_refclk"                  LOC = "W1";
+
+## Power Supply Control
+NET "pwr_en_1v8"                    LOC = "G7";
+
+## RF Control
+NET "rf_att_v[2]"                   LOC = "F8";
+NET "rf_att_v[1]"                   LOC = "E8";
+NET "rf_sw_v_a[2]"                  LOC = "F10";
+NET "rf_sw_v_a[1]"                  LOC = "F9";
+NET "rf_sw_v_b[2]"                  LOC = "F12";
+NET "rf_sw_v_b[1]"                  LOC = "F11";
+
+## Daughter Board Control
+NET "dgtr_rf_sw_ctrl[6]"            LOC = "P21";
+NET "dgtr_rf_sw_ctrl[5]"            LOC = "AA21";
+NET "dgtr_rf_sw_ctrl[4]"            LOC = "N22";
+NET "dgtr_rf_sw_ctrl[3]"            LOC = "Y22";
+NET "dgtr_rf_sw_ctrl[2]"            LOC = "N20";
+NET "dgtr_rf_sw_ctrl[1]"            LOC = "Y21";
+NET "dgtr_rf_sw_ctrl[0]"            LOC = "M22";
+NET "dgtr_rf_att_ctrl[8]"           LOC = "U20";
+NET "dgtr_rf_att_ctrl[7]"           LOC = "AA18";
+NET "dgtr_rf_att_ctrl[6]"           LOC = "T22";
+NET "dgtr_rf_att_ctrl[5]"           LOC = "Y19";
+NET "dgtr_rf_att_ctrl[4]"           LOC = "T21";
+NET "dgtr_rf_att_ctrl[3]"           LOC = "AB20";
+NET "dgtr_rf_att_ctrl[2]"           LOC = "R22";
+NET "dgtr_rf_att_ctrl[1]"           LOC = "AA20";
+NET "dgtr_rf_att_ctrl[0]"           LOC = "R20";
+NET "dgtr_pwr_en_5v5"               LOC = "U22";
+NET "dgtr_pwr_gd_5v5"               LOC = "AA16";
+NET "dgtr_id[3]"                    LOC = "Y14";
+NET "dgtr_id[2]"                    LOC = "Y20";
+NET "dgtr_id[1]"                    LOC = "AB14";
+NET "dgtr_id[0]"                    LOC = "V21";
+NET "dgtr_id[3]"                    PULLUP;
+NET "dgtr_id[2]"                    PULLUP;
+NET "dgtr_id[1]"                    PULLUP;
+NET "dgtr_id[0]"                    PULLUP;
+
+## Blanking
+NET "blank_in_n"                    LOC = "W13";
+NET "blank_out_n"                   LOC = "W9";
+
+## Slave SPI Bus
+NET "spi_cpu_rst_n"                 LOC = "AB17";   # FPGA_RESET_N
+NET "spi_cpu_clk"                   LOC = "AA12";
+NET "spi_cpu_cs_n"                  LOC = "Y13";
+NET "spi_cpu_rdy_rd"                LOC = "AB2";    # CPU_GPIO_0
+NET "spi_cpu_error"                 LOC = "AB3";    # CPU_GPIO_1
+NET "spi_cpu_mosi"                  LOC = "Y10";
+NET "spi_cpu_miso"                  LOC = "W12";
+
+## GPIO / CPU Interrupts
+NET "ext_gpio[7]"                   LOC = "A19";
+NET "ext_gpio[6]"                   LOC = "A20";
+NET "ext_gpio[5]"                   LOC = "B18";
+NET "ext_gpio[4]"                   LOC = "B20";
+NET "ext_gpio[3]"                   LOC = "C17";
+NET "ext_gpio[2]"                   LOC = "B22";
+NET "ext_gpio[1]"                   LOC = "C18";
+NET "ext_gpio[0]"                   LOC = "B21";
+
+#NET "cpu_gpio[11]"                 LOC = "AB13";
+#NET "cpu_gpio[10]"                 LOC = "AB12";
+#NET "cpu_gpio[9]"                  LOC = "AB11";
+#NET "cpu_gpio[8]"                  LOC = "AB10";
+#NET "cpu_gpio[7]"                  LOC = "AB9";
+#NET "cpu_gpio[6]"                  LOC = "AB8";
+NET "cpu_gpio[5]"                   LOC = "AB7";
+NET "cpu_gpio[4]"                   LOC = "AB6";
+NET "cpu_gpio[3]"                   LOC = "AB5";
+NET "cpu_gpio[2]"                   LOC = "AB4";
+#NET "cpu_gpio[1]"                  LOC = "AB3";
+#NET "cpu_gpio[0]"                  LOC = "AB2";
+NET "cpu_eint[1]"                   LOC = "AB16";
+NET "cpu_eint[0]"                   LOC = "AA14";
+
+NET "ctl_gpio[3]"                   LOC = "V13";
+NET "ctl_gpio[2]"                   LOC = "U13";
+NET "ctl_gpio[1]"                   LOC = "V11";
+NET "ctl_gpio[0]"                   LOC = "W11";
+NET "ctl_gpio[3]"                   PULLUP;
+NET "ctl_gpio[2]"                   PULLUP;
+NET "ctl_gpio[1]"                   PULLUP;
+NET "ctl_gpio[0]"                   PULLUP;
+
+## PA/Dock Control & Status
+# Internal PA Channel A
+NET "int_pa_mosi_a_monitor_cs_n"    LOC = "Y4";
+NET "int_pa_mosi_a_monitor_sck"     LOC = "Y3";
+NET "int_pa_mosi_a_monitor_mosi"    LOC = "AA4";
+NET "int_pa_miso_a_monitor_miso"    LOC = "AA2";
+NET "int_pa_mosi_a_monitor_en"      LOC = "V5";
+#NET "int_pa_miso_a_monitor_spare"   LOC = "Y2";
+NET "int_pa_mosi_a_ctrl_shdn"       LOC = "V3";
+NET "int_pa_mosi_a_ctrl_mute_n"     LOC = "U3";
+NET "int_pa_miso_a_ctrl_alert"      LOC = "T3";
+NET "int_pa_bidir_a_ctrl_scl"       LOC = "T4";
+NET "int_pa_bidir_a_ctrl_scl"       PULLUP;
+NET "int_pa_bidir_a_ctrl_sda"       LOC = "W4";
+
+# Dock Channel A 
+NET "dock_comms_ro_a"               LOC = "Y7";
+NET "dock_comms_re_n_a"             LOC = "AA6";
+NET "dock_comms_de_a"               LOC = "Y6";
+NET "dock_comms_di_a"               LOC = "W6";
+#NET "dock_blank_ro_a"               LOC = "V7";
+NET "dock_blank_re_n_a"             LOC = "U6";
+NET "dock_blank_de_a"               LOC = "T5";
+NET "dock_blank_di_a"               LOC = "T6";
+
+# Tx/Rx Switch Control
+NET "tx_rx_ctrl"                    LOC ="D1";
+
+## Debug LEDs
+NET "debug_led[1]"                  LOC = "D20";
+NET "debug_led[0]"                  LOC = "D19";
+
+## Hardware version/mod-level
+NET "hw_vers[2]"                    LOC = "L22";
+NET "hw_vers[1]"                    LOC = "K21";
+NET "hw_vers[0]"                    LOC = "K22";
+NET "hw_mod[2]"                     LOC = "E22";
+NET "hw_mod[1]"                     LOC = "D22";
+NET "hw_mod[0]"                     LOC = "C22";
+
+## Multi-Gigabit Transceiver
+# MGT Clock Enable
+NET "mgt_clk_en"                    LOC = "C20";
+
+# MGT Clock Input
+NET "mgt_clk_p"                     LOC = "B10";
+NET "mgt_clk_n"                     LOC = "A10";
+
+# MGT I/O
+NET "mgt_rx_p"                     LOC = "D7";
+NET "mgt_rx_n"                     LOC = "C7";
+NET "mgt_tx_p"                     LOC = "B6";
+NET "mgt_tx_n"                     LOC = "A6";

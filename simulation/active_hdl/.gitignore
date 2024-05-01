@@ -1,0 +1,11 @@
+*.asdb
+*.ini
+*.set
+*.order
+*.cfg
+*.wsp
+*.wsw
+*.txt
+compile*
+work*
+wave.asdbw*

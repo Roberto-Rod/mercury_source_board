@@ -1,0 +1,61 @@
+##############################################################
+#
+# Xilinx Core Generator version 14.7
+# Date: Thu Jan 12 12:26:18 2017
+#
+##############################################################
+#
+#  This file contains the customisation parameters for a
+#  Xilinx CORE Generator IP GUI. It is strongly recommended
+#  that you do not manually alter this file as it may cause
+#  unexpected and unsupported behavior.
+#
+##############################################################
+#
+#  Generated from component: xilinx.com:ip:xbip_multadd:2.0
+#
+##############################################################
+#
+# BEGIN Project Options
+SET addpads = false
+SET asysymbol = true
+SET busformat = BusFormatAngleBracketNotRipped
+SET createndf = false
+SET designentry = VHDL
+SET device = xc6slx45t
+SET devicefamily = spartan6
+SET flowvendor = Foundation_ISE
+SET formalverification = false
+SET foundationsym = false
+SET implementationfiletype = Ngc
+SET package = csg484
+SET removerpms = false
+SET simulationfiles = Behavioral
+SET speedgrade = -3
+SET verilogsim = false
+SET vhdlsim = true
+# END Project Options
+# BEGIN Select
+SELECT Multiply_Adder xilinx.com:ip:xbip_multadd:2.0
+# END Select
+# BEGIN Parameters
+CSET c_a_type=0
+CSET c_a_width=9
+CSET c_ab_latency=-1
+CSET c_b_type=1
+CSET c_b_width=5
+CSET c_c_latency=-1
+CSET c_c_type=0
+CSET c_c_width=9
+CSET c_ce_overrides_sclr=0
+CSET c_out_high=13
+CSET c_out_low=5
+CSET c_use_pcin=false
+CSET c_verbosity=0
+CSET component_name=mult_add_pps_sync
+# END Parameters
+# BEGIN Extra information
+MISC pkg_timestamp=2013-07-22T10:41:27Z
+# END Extra information
+GENERATE
+# CRC: db2445f7

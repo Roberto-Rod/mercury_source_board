@@ -1,0 +1,6 @@
+[submodule "submodules/vhdl_general"]
+	path = submodules/vhdl_general
+	url = git@halley.kirintec.local:fpga/vhdl_general.git 
+[submodule "submodules/_sim_libs"]
+	path = submodules/_sim_libs
+	url = git@halley.kirintec.local:fpga/_sim_libs.git

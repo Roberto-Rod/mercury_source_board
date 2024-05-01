@@ -1,0 +1,12 @@
+[Version]
+Version=10.3
+[Designs]
+mercury_source_board=.\mercury_source_board\mercury_source_board.adf
+[Browser]
+sort=order
+mode=none
+[Order]
+order=1
+macro=
+[Expand]
+mercury_source_board=1

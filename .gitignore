@@ -1,0 +1,57 @@
+###############
+## ISE Files ##
+###############
+## Ignore all in ise directory
+ise/*.*
+## Except...
+!ise/*.xise
+!ise/*.ipf
+!ise/*.ucf
+!ise/*.cdc
+!ise/*.cpj
+## But including...
+ise/auto_project*.ipf
+
+## Ignore all in these ise sub-directories...
+ise/_ngo
+ise/_xmsgs
+ise/xlnx_auto_0_xdb
+ise/xst
+ise/planAhead*
+## Ignore all in ipcore_dir
+ise/ipcore_dir/*.*
+ise/ipcore_dir/*/
+#ise/ipcore_dir/_xmsgs
+#ise/ipcore_dir/tmp
+## Except...
+!ise/ipcore_dir/*.cgp
+!ise/ipcore_dir/*.xco
+!ise/ipcore_dir/*.vhd
+!ise/ipcore_dir/*.xise
+!ise/ipcore_dir/*.coe
+## Ignore all in iseconfig dir
+ise/iseconfig/*.*
+## Except...
+!ise/iseconfig/filter.filter
+
+###########################
+## Auto-Generated Source ##
+###########################
+src/packages/mercury_source_board_build_id.vhd
+
+######################
+## Active-HDL Files ##
+######################
+*.mgf
+
+###################
+## Doxygen Files ##
+###################
+## Ignore everything under the default compilation directory
+doxygen/html
+
+#########################
+## Directory Shortcuts ##
+#########################
+*.lnk
+*.dat
